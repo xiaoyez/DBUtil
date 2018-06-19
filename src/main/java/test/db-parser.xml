@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<db-parser>
+
+    <data-source id="dbSource">
+        <location>data_source.properties</location>
+
+    </data-source>
+
+    <class-creator id="classCreator" base-package="test.pojo" path="" prefix="t_" data-source-ref="dbSource"></class-creator>
+
+
+</db-parser>
