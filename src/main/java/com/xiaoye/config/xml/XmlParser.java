@@ -132,6 +132,14 @@ public class XmlParser {
 
         ClassCreator creator = new ClassCreator(dataSource,basePackage,path,prefix);
 
+        List<Element> classMappingElements = element.elements("class-mapping");
+        for (Element classMappingElement : classMappingElements)
+        {
+            String tableName = classMappingElement.attributeValue("table-name");
+            String className = classMappingElement.attributeValue("class-name");
+            creator.getClassMapping().put(tableName,className);
+        }
+
         ClassCreatorContainer.getInstance().registry(name,creator);
     }
 

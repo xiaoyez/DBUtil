@@ -13,7 +13,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class ClassCreator {
 
@@ -25,6 +28,8 @@ public class ClassCreator {
 
     private String prefix;
 
+    private Map<String,String> classMapping = new HashMap<String, String>();
+
 
     public ClassCreator(){}
 
@@ -35,6 +40,14 @@ public class ClassCreator {
         this.prefix = prefix;
     }
 
+
+    public Map<String, String> getClassMapping() {
+        return classMapping;
+    }
+
+    public void setClassMapping(Map<String, String> classMapping) {
+        this.classMapping = classMapping;
+    }
 
     public String getBasePackage() {
         return basePackage;
@@ -69,6 +82,20 @@ public class ClassCreator {
         Connection connection = dbc.getConnection();
         DatabaseMetadata databaseMetadata = new DatabaseMetadata(connection);
         List<Table> tables = databaseMetadata.getTables();
+
+        //类与表的映射
+        Set<String> tableNames = classMapping.keySet();
+        for (String tableName : tableNames)
+        {
+            for (Table table : tables)
+            {
+                if (table.getName().equals(tableName))
+                {
+                    String className = classMapping.get(tableName);
+                    table.setName(className);
+                }
+            }
+        }
 
         File directory;
         if (StringUtil.hasText(path))
@@ -290,6 +317,7 @@ public class ClassCreator {
                 ", basePackage='" + basePackage + '\'' +
                 ", path='" + path + '\'' +
                 ", prefix='" + prefix + '\'' +
+                ", classMapping=" + classMapping +
                 '}';
     }
 }

@@ -6,7 +6,9 @@
 
     </data-source>
 
-    <class-creator id="classCreator" base-package="test.pojo" path="" prefix="t_" data-source-ref="dbSource"></class-creator>
+    <class-creator id="classCreator" base-package="test.pojo" path="" prefix="t_" data-source-ref="dbSource">
+        <class-mapping table-name="t_club" class-name="TestClub"></class-mapping>
+    </class-creator>
 
 
 </db-parser>
