@@ -134,8 +134,12 @@ public class ClassCreator {
 
         String className = table.getName();
 
-        if (className.startsWith(prefix))
-            className = className.substring(prefix.length());
+        if (prefix != null)
+        {
+            if (className.startsWith(prefix))
+                className = className.substring(prefix.length());
+        }
+
 
         //首字母大写
         className = StringUtil.firstLetterToUpperCase(className);
@@ -178,6 +182,10 @@ public class ClassCreator {
         {
             String fieldName = column.name;
             String type = column.type.getName();
+            if (type.startsWith("java.lang"))
+            {
+                type = type.substring("java.lang.".length());
+            }
 
             builder.append("\t");
             builder.append("private ");
@@ -207,6 +215,11 @@ public class ClassCreator {
             String fieldName = column.name;
             String type = column.type.getName();
 
+            if (type.startsWith("java.lang"))
+            {
+                type = type.substring("java.lang.".length());
+            }
+
             builder.append(type + " ");
             builder.append(fieldName + ",");
         }
@@ -235,6 +248,11 @@ public class ClassCreator {
             String fieldName = column.name;
             String type = column.type.getName();
 
+            if (type.startsWith("java.lang"))
+            {
+                type = type.substring("java.lang.".length());
+            }
+
             builder.append("\t");
             builder.append("public ");
             builder.append(type + " ");
@@ -257,6 +275,11 @@ public class ClassCreator {
         {
             String fieldName = column.name;
             String type = column.type.getName();
+
+            if (type.startsWith("java.lang"))
+            {
+                type = type.substring("java.lang.".length());
+            }
 
             builder.append("\t");
             builder.append("public ");
