@@ -17,4 +17,15 @@ public class StringUtil {
         }
         return str;
     }
+
+    public static String castUnderlineToCamel(String str)
+    {
+        String[] strs = str.split("_");
+
+        StringBuilder builder = new StringBuilder();
+        for (String s : strs) {
+            builder.append(firstLetterToUpperCase(s));
+        }
+        return builder.toString();
+    }
 }

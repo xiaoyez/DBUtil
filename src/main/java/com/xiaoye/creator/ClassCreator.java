@@ -133,6 +133,7 @@ public class ClassCreator {
             directory.mkdirs();
 
         String className = table.getName();
+        className = StringUtil.castUnderlineToCamel(className);
 
         if (prefix != null)
         {
