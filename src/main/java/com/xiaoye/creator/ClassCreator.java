@@ -1,12 +1,16 @@
 package com.xiaoye.creator;
 
+import com.xiaoye.classgenerator.defenition.ClassDefinition;
 import com.xiaoye.support.DataSource;
 import com.xiaoye.support.DatabaseMetadata;
 import com.xiaoye.support.Dbc;
 import com.xiaoye.support.Table;
+import com.xiaoye.util.ClassDefinitionUtil;
 import com.xiaoye.util.FileResolveException;
 import com.xiaoye.util.FileUtil;
 import com.xiaoye.util.StringUtil;
+import lombok.SneakyThrows;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,19 +88,19 @@ public class ClassCreator {
         List<Table> tables = databaseMetadata.getTables();
 
         //类与表的映射
-        Set<String> tableNames = classMapping.keySet();
-        for (String tableName : tableNames)
-        {
-            for (Table table : tables)
-            {
-                if (table.getName().equals(tableName))
-                {
-                    String className = classMapping.get(tableName);
-                    table.setName(className);
-                }
-            }
-        }
 
+        mappingClassAndTable(tables,classMapping);
+
+        File directory =  createDirectory(path);
+        for (Table table : tables)
+        {
+            createJavaFile(directory.getAbsolutePath(),table,prefix);
+        }
+        connection.close();
+    }
+
+    @SneakyThrows
+    private File createDirectory(String path) {
         File directory;
         if (StringUtil.hasText(path))
         {
@@ -110,13 +114,22 @@ public class ClassCreator {
             if (!directory.exists())
                 directory.mkdirs();
         }
+        return directory;
+    }
 
-        for (Table table : tables)
+    private void mappingClassAndTable(List<Table> tables, Map<String, String> classMapping) {
+        Set<String> tableNames = classMapping.keySet();
+        for (String tableName : tableNames)
         {
-            createJavaFile(directory.getAbsolutePath(),table,prefix);
+            for (Table table : tables)
+            {
+                if (table.getName().equals(tableName))
+                {
+                    String className = classMapping.get(tableName);
+                    table.setName(className);
+                }
+            }
         }
-
-        connection.close();
     }
 
 
@@ -129,185 +142,63 @@ public class ClassCreator {
 
     public void createJavaFile(String path, Table table, String prefix) throws IOException {
         File directory = new File(path);
-        if (!directory.exists())
-            directory.mkdirs();
+        checkDirectory(directory);
 
-        String className = table.getName();
-        className = StringUtil.castUnderlineToCamel(className);
+        ClassDefinition classDefinition = ClassDefinitionUtil.fromTable(table);
 
-        if (prefix != null)
-        {
-            if (className.startsWith(prefix))
-                className = className.substring(prefix.length());
-        }
+        deletePrefix(prefix,classDefinition);
 
+        File javaFile = createJavaFileByPath(path,classDefinition);
 
-        //首字母大写
-        className = StringUtil.firstLetterToUpperCase(className);
+        basePackage = getPackageName(javaFile);
+        classDefinition.setPackageName(basePackage);
 
-        if (!path.endsWith("\\") )
-        {
-            path += "\\";
-        }
-        String fileName = path + className + ".java";
-        File javaFile = new File(fileName);
-        if (javaFile.exists())
-        {
-            return;
-        }
+        String content = classDefinition.toString();
+        FileUtils.writeStringToFile(javaFile, content, "UTF-8");
 
-//        System.out.println(javaFile.getAbsolutePath());
-        javaFile.createNewFile();
+    }
 
-        StringBuilder builder = new StringBuilder();
-
-
+    private String getPackageName(File javaFile) {
         if (!StringUtil.hasText(basePackage))
         {
             basePackage = getPackageName(javaFile.getAbsolutePath());
         }
-        String packageName = basePackage;
+        return basePackage;
+    }
 
-        builder.append("package " + packageName + ";\n");
-
-//        System.out.println(packageName);
-
-        builder.append("\n");
-
-        builder.append("public class ");
-        builder.append(className);
-        builder.append("{\n");
-
-        //添加属性
-        for (Table.Column column : table.getColumns())
+    private File createJavaFileByPath(String path,ClassDefinition classDefinition) {
+        if (!path.endsWith("\\") )
         {
-            String fieldName = column.name;
-            String type = column.type.getName();
-            if (type.startsWith("java.lang"))
-            {
-                type = type.substring("java.lang.".length());
-            }
-
-            builder.append("\t");
-            builder.append("private ");
-            builder.append(type + " ");
-            builder.append(fieldName + ";\n");
+            path += "\\";
         }
-        builder.append("\n");
-
-        //无参构造器
-        builder.append("\t");
-        builder.append("public ");
-        builder.append(className);
-        builder.append("(){}\n");
-
-        builder.append("\n");
-
-
-        //有参构造器
-        builder.append("\t");
-        builder.append("public ");
-        builder.append(className);
-        builder.append("(");
-
-        //参数
-        for (Table.Column column : table.getColumns())
+        String fileName = path + classDefinition.getName() + ".java";
+        File javaFile = new File(fileName);
+        if (javaFile.exists())
         {
-            String fieldName = column.name;
-            String type = column.type.getName();
-
-            if (type.startsWith("java.lang"))
-            {
-                type = type.substring("java.lang.".length());
-            }
-
-            builder.append(type + " ");
-            builder.append(fieldName + ",");
+            return null;
         }
 
-        //删除最后一个逗号
-        builder.deleteCharAt(builder.length() - 1);
-
-        builder.append("){\n");
-
-        //this.xxx = xxx;
-        for (Table.Column column : table.getColumns())
-        {
-            builder.append("\t\t");
-            String fieldName = column.name;
-
-            builder.append("this." + fieldName + " = " + fieldName + ";\n");
+//        System.out.println(javaFile.getAbsolutePath());
+        try {
+            javaFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        return javaFile;
+    }
 
-        builder.append("\t}");
+    private void deletePrefix(String prefix, ClassDefinition classDefinition) {
 
-        builder.append("\n");
-
-        //getter
-        for (Table.Column column : table.getColumns())
+        if (prefix != null)
         {
-            String fieldName = column.name;
-            String type = column.type.getName();
-
-            if (type.startsWith("java.lang"))
-            {
-                type = type.substring("java.lang.".length());
-            }
-
-            builder.append("\t");
-            builder.append("public ");
-            builder.append(type + " ");
-            builder.append("get");
-
-            String methedName = new String(fieldName);
-            if(fieldName.charAt(0) >= 'a' && fieldName.charAt(0) <= 'z')
-            {
-                methedName.replace(methedName.charAt(0), Character.toUpperCase(methedName.charAt(0)));
-            }
-
-            builder.append(methedName);
-            builder.append("(){return " + fieldName + ";}\n");
-            builder.append("\n");
+            if (classDefinition.getName().startsWith(prefix))
+                classDefinition.setName(classDefinition.getName().substring(prefix.length()));
         }
+    }
 
-
-        //setter
-        for (Table.Column column : table.getColumns())
-        {
-            String fieldName = column.name;
-            String type = column.type.getName();
-
-            if (type.startsWith("java.lang"))
-            {
-                type = type.substring("java.lang.".length());
-            }
-
-            builder.append("\t");
-            builder.append("public ");
-            builder.append("void ");
-            builder.append("set");
-
-            String methedName = new String(fieldName);
-            if(fieldName.charAt(0) >= 'a' && fieldName.charAt(0) <= 'z')
-            {
-
-                methedName.replace(methedName.charAt(0), Character.toUpperCase(methedName.charAt(0)));
-            }
-
-            builder.append(methedName);
-            builder.append("(");
-            builder.append(type + " " + fieldName);
-            builder.append("){ this." + fieldName + " = " + fieldName + ";}\n");
-            builder.append("\n");
-        }
-
-        builder.append("}");
-
-        String content = builder.toString();
-        PrintWriter writer = new PrintWriter(javaFile);
-        writer.write(content);
-        writer.close();
-
+    private void checkDirectory(File directory) {
+        if (!directory.exists())
+            directory.mkdirs();
 
     }
 

@@ -28,4 +28,12 @@ public class StringUtil {
         }
         return builder.toString();
     }
+
+    public static String firstLetterToLowerCase(String str) {
+        if (str.charAt(0) >= 'A' && str.charAt(0) <= 'Z')
+        {
+            str = str.replaceFirst(String.valueOf(str.charAt(0)),String.valueOf(str.charAt(0)).toLowerCase());
+        }
+        return str;
+    }
 }

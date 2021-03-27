@@ -67,10 +67,17 @@ public class Table {
     public static class Column{
         public String name;
         public Class type;
+        public String comment;
 
         public Column(String name, Class type) {
             this.name = name;
             this.type = type;
+        }
+
+        public Column(String name, Class type, String comment) {
+            this.name = name;
+            this.type = type;
+            this.comment = comment;
         }
     }
 }
