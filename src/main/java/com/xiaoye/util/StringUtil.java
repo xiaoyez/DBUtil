@@ -29,6 +29,28 @@ public class StringUtil {
         return builder.toString();
     }
 
+    public static String castCamelCaseToUnderline(String str)
+    {
+        char[] chars = str.toCharArray();
+        String result = "";
+        for (char i : chars)
+        {
+            if (i >= 'A' && i <= 'Z')
+            {
+                result += "_" + String.valueOf(i).toLowerCase();
+            }
+            else
+            {
+                result += i;
+            }
+        }
+        if (result.startsWith("_"))
+        {
+            result = result.substring(1);
+        }
+        return result;
+    }
+
     public static String firstLetterToLowerCase(String str) {
         if (str.charAt(0) >= 'A' && str.charAt(0) <= 'Z')
         {

@@ -55,4 +55,12 @@ public class DataSource {
                 ", password='" + password + '\'' +
                 '}';
     }
+
+    public String getDbName() {
+        String dbName = url.substring("jdbc:mysql://".length());
+        dbName = dbName.substring(dbName.indexOf("/") + 1);
+        if (dbName.contains("?"))
+            dbName = dbName.substring(0,dbName.indexOf("?"));
+        return dbName;
+    }
 }

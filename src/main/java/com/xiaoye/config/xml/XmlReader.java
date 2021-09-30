@@ -1,6 +1,6 @@
 package com.xiaoye.config.xml;
 
-import com.xiaoye.creator.ClassCreator;
+import com.xiaoye.creator.BeanClassCreator;
 import com.xiaoye.support.ClassCreatorContainer;
 import com.xiaoye.util.FileResolveException;
 import com.xiaoye.util.FileUtil;
@@ -30,12 +30,12 @@ public class XmlReader {
 
     }
 
-    public ClassCreator[] getClassCreators()  {
+    public BeanClassCreator[] getClassCreators()  {
         Object[] values = ClassCreatorContainer.getInstance().getValues();
-        ClassCreator[] creators = new ClassCreator[values.length];
+        BeanClassCreator[] creators = new BeanClassCreator[values.length];
         for (int i = 0; i < creators.length; i++)
         {
-            creators[i] = (ClassCreator) values[i];
+            creators[i] = (BeanClassCreator) values[i];
         }
 
         return creators;

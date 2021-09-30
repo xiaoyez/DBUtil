@@ -1,8 +1,8 @@
 package com.xiaoye.support;
 
-import com.xiaoye.creator.ClassCreator;
+import com.xiaoye.creator.BeanClassCreator;
 
-public class ClassCreatorContainer extends AbstractContainer<ClassCreator> {
+public class ClassCreatorContainer extends AbstractContainer<BeanClassCreator> {
 
     private static ClassCreatorContainer container = null;
 

@@ -1,6 +1,6 @@
 package com.xiaoye.config.xml;
 
-import com.xiaoye.creator.ClassCreator;
+import com.xiaoye.creator.BeanClassCreator;
 import com.xiaoye.support.ClassCreatorContainer;
 import com.xiaoye.support.DataSource;
 import com.xiaoye.support.DataSourceContainer;
@@ -88,8 +88,6 @@ public class XmlParser {
                 }
             }
 
-
-
             String column = propertyElement.attributeValue(Tags.COLUMN);
             String value = propertyElement.attributeValue(Tags.VALUE);
             if (Tags.DRIVER.equals(column)) {
@@ -130,7 +128,7 @@ public class XmlParser {
 
         DataSource dataSource = DataSourceContainer.getInstance().get(data_source_ref);
 
-        ClassCreator creator = new ClassCreator(dataSource,basePackage,path,prefix);
+        BeanClassCreator creator = new BeanClassCreator(dataSource,basePackage,path,prefix);
 
         List<Element> classMappingElements = element.elements("class-mapping");
         for (Element classMappingElement : classMappingElements)

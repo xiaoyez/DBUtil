@@ -1,6 +1,6 @@
 package com.xiaoye.creator;
 
-import com.xiaoye.classgenerator.defenition.ClassDefinition;
+import com.xiaoye.classgenerator.defenition.type.ClassDefinition;
 import com.xiaoye.support.DataSource;
 import com.xiaoye.support.DatabaseMetadata;
 import com.xiaoye.support.Dbc;
@@ -22,9 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ClassCreator {
+public class BeanClassCreator {
 
     private DataSource source;
+
+    private Connection connection;
 
     private String basePackage = null;
 
@@ -35,9 +37,9 @@ public class ClassCreator {
     private Map<String,String> classMapping = new HashMap<String, String>();
 
 
-    public ClassCreator(){}
+    public BeanClassCreator(){}
 
-    public ClassCreator(DataSource source, String basePackage, String path, String prefix) {
+    public BeanClassCreator(DataSource source, String basePackage, String path, String prefix) {
         this.source = source;
         this.basePackage = basePackage;
         this.path = path;
@@ -77,26 +79,78 @@ public class ClassCreator {
         this.prefix = prefix;
     }
 
-    public ClassCreator(DataSource source) {
+    public BeanClassCreator(DataSource source) {
         this.source = source;
     }
 
     public void createJavaFile() throws SQLException, ClassNotFoundException, IOException, FileResolveException {
-        Dbc dbc = new Dbc(source);
-        Connection connection = dbc.getConnection();
-        DatabaseMetadata databaseMetadata = new DatabaseMetadata(connection);
-        List<Table> tables = databaseMetadata.getTables();
-
-        //类与表的映射
-
-        mappingClassAndTable(tables,classMapping);
-
+        List<Table> tables = getTables();
         File directory =  createDirectory(path);
         for (Table table : tables)
         {
             createJavaFile(directory.getAbsolutePath(),table,prefix);
         }
         connection.close();
+    }
+
+    public void createJavaFileSuiteTkMapper() throws SQLException, ClassNotFoundException, IOException {
+
+        List<Table> tables = getTables();
+
+        File directory =  createDirectory(path);
+        for (Table table : tables)
+        {
+            createJavaFileSuiteTkMapper(directory.getAbsolutePath(),table,prefix);
+        }
+        connection.close();
+    }
+
+    private List<Table> getTables() throws SQLException, ClassNotFoundException {
+        Dbc dbc = new Dbc(source);
+        connection = dbc.getConnection();
+        DatabaseMetadata databaseMetadata = new DatabaseMetadata(connection);
+        List<Table> tables = databaseMetadata.getTables();
+        tables.addAll(databaseMetadata.getViews(source.getDbName()));
+
+        //类与表的映射
+
+        mappingClassAndTable(tables,classMapping);
+        return tables;
+    }
+
+    private void createJavaFileSuiteTkMapper(String path, Table table, String prefix) throws IOException {
+
+        ClassDefinition classDefinition = getClassDefinition(table,prefix,true);
+        classDefinition.setPackageName(basePackage);
+        createJavaFile(classDefinition,path);
+    }
+
+    private void createJavaFile(ClassDefinition classDefinition, String path) throws IOException {
+        File directory = new File(path);
+        checkDirectory(directory);
+
+        File javaFile = createJavaFileByPath(path,classDefinition);
+
+        basePackage = getPackageName(javaFile);
+        classDefinition.setPackageName(basePackage);
+
+        String content = classDefinition.toString();
+        FileUtils.writeStringToFile(javaFile, content, "UTF-8");
+        MapperCreator.generateTkMapper(basePackage.replace("bean","mapper"),classDefinition.getName());
+    }
+
+    private ClassDefinition getClassDefinition(Table table, String prefix, boolean tkMapper) {
+        ClassDefinition classDefinition = null;
+        if (tkMapper)
+        {
+            classDefinition  = ClassDefinitionUtil.fromTableSuiteTkMapper(table);
+        }
+        else
+        {
+            classDefinition = ClassDefinitionUtil.fromTable(table);
+        }
+        deletePrefix(prefix,classDefinition);
+        return classDefinition;
     }
 
     @SneakyThrows
@@ -141,21 +195,8 @@ public class ClassCreator {
     }
 
     public void createJavaFile(String path, Table table, String prefix) throws IOException {
-        File directory = new File(path);
-        checkDirectory(directory);
-
-        ClassDefinition classDefinition = ClassDefinitionUtil.fromTable(table);
-
-        deletePrefix(prefix,classDefinition);
-
-        File javaFile = createJavaFileByPath(path,classDefinition);
-
-        basePackage = getPackageName(javaFile);
-        classDefinition.setPackageName(basePackage);
-
-        String content = classDefinition.toString();
-        FileUtils.writeStringToFile(javaFile, content, "UTF-8");
-
+        ClassDefinition classDefinition = getClassDefinition(table, path, false);
+        createJavaFile(classDefinition, path);
     }
 
     private String getPackageName(File javaFile) {
@@ -227,7 +268,7 @@ public class ClassCreator {
 
     @Override
     public String toString() {
-        return "ClassCreator{" +
+        return "BeanClassCreator{" +
                 "source=" + source +
                 ", basePackage='" + basePackage + '\'' +
                 ", path='" + path + '\'' +

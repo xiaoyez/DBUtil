@@ -5,7 +5,6 @@
         <location>data_source.properties</location>
     </data-source>
 
-    <class-creator id="classCreator" base-package="test.pojo" path="" data-source-ref="dbSource">
-        <class-mapping table-name="user_info" class-name="UserInfo"></class-mapping>
+    <class-creator id="classCreator" base-package="test.bean" mapper-package="test.mapper" path="" data-source-ref="dbSource">
     </class-creator>
 </db-parser>
