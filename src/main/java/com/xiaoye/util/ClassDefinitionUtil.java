@@ -6,11 +6,18 @@ import com.xiaoye.classgenerator.defenition.AnnotationDefinition;
 import com.xiaoye.classgenerator.defenition.field.FieldDefinition;
 import com.xiaoye.classgenerator.defenition.type.ClassDefinition;
 import com.xiaoye.classgenerator.util.ArrayList;
-import com.xiaoye.support.Table;
+import com.xy.entity.Table;
+import com.xy.util.db.JdbcUtils;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -20,10 +27,10 @@ import java.util.List;
 public class ClassDefinitionUtil {
 
     public static ClassDefinition fromTable(Table table){
-        List<Table.Column> columns = table.getColumns();
+        Collection<com.xy.entity.Column> columns = table.columns();
         List<FieldDefinition> fieldDefinitions = new ArrayList();
-        for (Table.Column column : columns) {
-            fieldDefinitions.add(new FieldDefinition(column.type,StringUtil.firstLetterToLowerCase(StringUtil.castUnderlineToCamel(column.name)),column.comment));
+        for (com.xy.entity.Column column : columns) {
+            fieldDefinitions.add(new FieldDefinition(JdbcUtils.toJavaType(column.getSqlType()),StringUtil.firstLetterToLowerCase(StringUtil.castUnderlineToCamel(column.getName())),column.getComment()));
         }
         String className = table.getName();
         className = StringUtil.castUnderlineToCamel(className);
@@ -34,14 +41,34 @@ public class ClassDefinitionUtil {
 
     public static ClassDefinition fromTableSuiteTkMapper(Table table)
     {
-        List<Table.Column> columns = table.getColumns();
+        Collection<com.xy.entity.Column> columns = table.columns();
         List<FieldDefinition> fieldDefinitions = new ArrayList();
-        for (Table.Column column : columns) {
-            String fieldName = StringUtil.firstLetterToLowerCase(StringUtil.castUnderlineToCamel(column.name));
-            FieldDefinition fieldDefinition = new FieldDefinition(column.type, fieldName, column.comment);
-            fieldDefinition.addAnnotationDefinition(new AnnotationDefinition(Column.class,null ));
+        for (com.xy.entity.Column column : columns) {
+            String fieldName = StringUtil.firstLetterToLowerCase(StringUtil.castUnderlineToCamel(column.getName()));
+            FieldDefinition fieldDefinition = FieldDefinition.builder()
+                    .modifier(Modifer.PRIVATE)
+                    .fieldClass(JdbcUtils.toJavaType(column.getSqlType()))
+                    .name(fieldName)
+                    .comment(column.getComment())
+                    .isStatic(false)
+                    .build();
             fieldDefinitions.add(fieldDefinition);
-            fieldDefinition.setComment(column.comment);
+            fieldDefinition.setComment(column.getComment());
+            if (column.isPK())
+            {
+                AnnotationDefinition id = new AnnotationDefinition(Id.class);
+                fieldDefinition.addAnnotationDefinition(id);
+            }
+            else
+            {
+                AnnotationDefinition columnAnnotationDefinition = new AnnotationDefinition(Column.class);
+                fieldDefinition.addAnnotationDefinition(columnAnnotationDefinition);
+            }
+            if (column.isAutoincrement())
+            {
+                AnnotationDefinition annotationDefinition = new AnnotationDefinition(GeneratedValue.class);
+                annotationDefinition.addParam("strategy", "javax.persistence.GenerationType.IDENTITY");
+            }
         }
         String className = table.getName();
         className = StringUtil.castUnderlineToCamel(className);
@@ -53,8 +80,16 @@ public class ClassDefinitionUtil {
         configuration.setGetter(false);
         configuration.setSetter(false);
         configuration.setToString(false);
-        ClassDefinition classDefinition = new ClassDefinition(null,null, null, className, fieldDefinitions, configuration);
+
+        ClassDefinition classDefinition = ClassDefinition.builder()
+                .name(className)
+                .configuration(configuration)
+                .fieldDefinitions(fieldDefinitions)
+                .build();
         classDefinition.addAnnotationDefinition(new AnnotationDefinition(Data.class,null ));
+        classDefinition.addAnnotationDefinition(new AnnotationDefinition(NoArgsConstructor.class,null ));
+        classDefinition.addAnnotationDefinition(new AnnotationDefinition(AllArgsConstructor.class,null ));
+        classDefinition.addAnnotationDefinition(new AnnotationDefinition(Builder.class,null ));
         classDefinition.addSuperInterface(Serializable.class.getName());
         return classDefinition;
     }

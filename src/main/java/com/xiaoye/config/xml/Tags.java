@@ -18,6 +18,7 @@ public class Tags {
         COLUMN = "column",
         LOCATION = "location",
         VALUE = "value",
-        DATASOURCE_REF = "data-source-ref";
+        DATASOURCE_REF = "data-source-ref",
+        DB_NAME = "db-name";
 
 }

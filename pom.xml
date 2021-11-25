@@ -10,6 +10,11 @@
 
     <packaging>jar</packaging>
 
+    <properties>
+        <java.version>1.8</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
     <dependencies>
         <!-- https://mvnrepository.com/a rtifact/dom4j/dom4j -->
         <dependency>
@@ -27,7 +32,13 @@
         <dependency>
             <groupId>com.xiaoye</groupId>
             <artifactId>class-generator</artifactId>
-            <version>1.3</version>
+            <version>1.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xy</groupId>
+            <artifactId>db-metadata</artifactId>
+            <version>1.0.0</version>
         </dependency>
 
         <dependency>
@@ -43,8 +54,7 @@
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.6</version>
-            <scope>test</scope>
+            <version>8.0.26</version>
         </dependency>
 
         <dependency>
@@ -54,6 +64,27 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>5.0.0</version>
+        </dependency>
+
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
 

@@ -4,6 +4,8 @@ import com.xiaoye.creator.BeanClassCreator;
 import com.xiaoye.support.ClassCreatorContainer;
 import com.xiaoye.util.FileResolveException;
 import com.xiaoye.util.FileUtil;
+import com.xy.parser.DbParser;
+import lombok.Getter;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
@@ -17,15 +19,16 @@ public class XmlReader {
 
     private XmlParser parser = new XmlParser();
 
-    private String xml_path;
+    @Getter
+    private String xmlPath;
 
-    public XmlReader(String xml_path) throws ParserConfigurationException, IOException, SAXException, XmlParserException, DocumentException, FileResolveException {
-        xml_path = FileUtil.resolvePath(xml_path);
-        this.xml_path = xml_path;
+    public XmlReader(String xmlPath) throws ParserConfigurationException, IOException, SAXException, XmlParserException, DocumentException, FileResolveException {
+        xmlPath = FileUtil.resolveResourcePath(xmlPath);
+        this.xmlPath = xmlPath;
         SAXReader reader = new SAXReader();
         reader.setEncoding("UTF-8");
-        Document document = reader.read(new File(xml_path));
-        parser.setXml_path(xml_path);
+        Document document = reader.read(new File(xmlPath));
+        parser.setXmlPath(xmlPath);
         parser.parse(document);
 
     }

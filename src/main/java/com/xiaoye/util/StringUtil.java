@@ -58,4 +58,32 @@ public class StringUtil {
         }
         return str;
     }
+
+    public static String getDefaultNull(String str)
+    {
+        return hasText(str)
+                ? str
+                : null;
+    }
+
+    public static String getDefaultEmpty(String str)
+    {
+        return hasText(str)
+                ? str
+                : "";
+    }
+
+    public static String getDefaultNull(Object obj)
+    {
+        if (obj == null)
+            return null;
+        return getDefaultNull(obj.toString());
+    }
+
+    public static String getDefaultEmpty(Object obj)
+    {
+        if (obj == null)
+            return "";
+        return getDefaultEmpty(obj.toString());
+    }
 }

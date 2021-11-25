@@ -1,30 +1,27 @@
 package com.xiaoye.creator;
 
 import com.xiaoye.classgenerator.defenition.type.ClassDefinition;
-import com.xiaoye.support.DataSource;
-import com.xiaoye.support.DatabaseMetadata;
-import com.xiaoye.support.Dbc;
-import com.xiaoye.support.Table;
 import com.xiaoye.util.ClassDefinitionUtil;
 import com.xiaoye.util.FileResolveException;
 import com.xiaoye.util.FileUtil;
 import com.xiaoye.util.StringUtil;
+import com.xy.entity.DB;
+import com.xy.entity.Table;
+import com.xy.parser.DbParser;
+import lombok.Data;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+@Data
 public class BeanClassCreator {
 
-    private DataSource source;
+    private DbParser dbParser;
 
     private Connection connection;
 
@@ -39,52 +36,20 @@ public class BeanClassCreator {
 
     public BeanClassCreator(){}
 
-    public BeanClassCreator(DataSource source, String basePackage, String path, String prefix) {
-        this.source = source;
+    public BeanClassCreator(DbParser dbParser, String basePackage, String path, String prefix) {
+        this.dbParser = dbParser;
         this.basePackage = basePackage;
         this.path = path;
         this.prefix = prefix;
+        this.connection = dbParser.getConnection();
     }
 
-
-    public Map<String, String> getClassMapping() {
-        return classMapping;
-    }
-
-    public void setClassMapping(Map<String, String> classMapping) {
-        this.classMapping = classMapping;
-    }
-
-    public String getBasePackage() {
-        return basePackage;
-    }
-
-    public void setBasePackage(String basePackage) {
-        this.basePackage = basePackage;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    public String getPrefix() {
-        return prefix;
-    }
-
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
-    }
-
-    public BeanClassCreator(DataSource source) {
-        this.source = source;
+    public BeanClassCreator(DbParser dbParser) {
+        this.dbParser = dbParser;
     }
 
     public void createJavaFile() throws SQLException, ClassNotFoundException, IOException, FileResolveException {
-        List<Table> tables = getTables();
+        Collection<Table> tables = getTables();
         File directory =  createDirectory(path);
         for (Table table : tables)
         {
@@ -95,25 +60,21 @@ public class BeanClassCreator {
 
     public void createJavaFileSuiteTkMapper() throws SQLException, ClassNotFoundException, IOException {
 
-        List<Table> tables = getTables();
+        Collection<Table> tables = getTables();
 
         File directory =  createDirectory(path);
         for (Table table : tables)
         {
             createJavaFileSuiteTkMapper(directory.getAbsolutePath(),table,prefix);
         }
-        connection.close();
+        if (!connection.isClosed())
+            connection.close();
     }
 
-    private List<Table> getTables() throws SQLException, ClassNotFoundException {
-        Dbc dbc = new Dbc(source);
-        connection = dbc.getConnection();
-        DatabaseMetadata databaseMetadata = new DatabaseMetadata(connection);
-        List<Table> tables = databaseMetadata.getTables();
-        tables.addAll(databaseMetadata.getViews(source.getDbName()));
+    public Collection<Table> getTables() throws SQLException, ClassNotFoundException {
 
-        //类与表的映射
-
+        DB db = dbParser.parse();
+        Collection<Table> tables = db.getTables();
         mappingClassAndTable(tables,classMapping);
         return tables;
     }
@@ -158,7 +119,7 @@ public class BeanClassCreator {
         File directory;
         if (StringUtil.hasText(path))
         {
-            directory = new File(FileUtil.resolvePath(path));
+            directory = new File(FileUtil.resolveSourcePath(path));
             if (!directory.exists())
                 directory.mkdirs();
         }
@@ -171,7 +132,7 @@ public class BeanClassCreator {
         return directory;
     }
 
-    private void mappingClassAndTable(List<Table> tables, Map<String, String> classMapping) {
+    private void mappingClassAndTable(Collection<Table> tables, Map<String, String> classMapping) {
         Set<String> tableNames = classMapping.keySet();
         for (String tableName : tableNames)
         {
@@ -190,7 +151,7 @@ public class BeanClassCreator {
     private String castPackageToPath(String basePackage)
     {
         basePackage = basePackage.replace(".","\\");
-        basePackage = FileUtil.getClassPath() + "\\" + basePackage;
+        basePackage = FileUtil.getSrcClassPath() + "\\" + basePackage;
         return basePackage;
     }
 
@@ -258,22 +219,4 @@ public class BeanClassCreator {
         return packageName;
     }
 
-    public DataSource getSource() {
-        return source;
-    }
-
-    public void setSource(DataSource source) {
-        this.source = source;
-    }
-
-    @Override
-    public String toString() {
-        return "BeanClassCreator{" +
-                "source=" + source +
-                ", basePackage='" + basePackage + '\'' +
-                ", path='" + path + '\'' +
-                ", prefix='" + prefix + '\'' +
-                ", classMapping=" + classMapping +
-                '}';
-    }
 }

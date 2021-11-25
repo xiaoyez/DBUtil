@@ -1,16 +1,20 @@
 package com.xiaoye.config.xml;
 
+import com.mysql.cj.jdbc.MysqlDataSource;
 import com.xiaoye.creator.BeanClassCreator;
 import com.xiaoye.support.ClassCreatorContainer;
-import com.xiaoye.support.DataSource;
-import com.xiaoye.support.DataSourceContainer;
+import com.xiaoye.support.DbParserContainer;
 import com.xiaoye.util.FileResolveException;
 import com.xiaoye.util.FileUtil;
 import com.xiaoye.util.StringUtil;
 
+import com.xy.parser.DbParser;
+import com.xy.parser.DefaultDbParser;
+import lombok.SneakyThrows;
 import org.dom4j.Document;
 import org.dom4j.Element;
 
+import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -20,16 +24,17 @@ import java.util.Properties;
 
 
 public class XmlParser {
-    private String xml_path;
+    private String xmlPath;
 
-    public String getXml_path() {
-        return xml_path;
+    public String getXmlPath() {
+        return xmlPath;
     }
 
-    public void setXml_path(String xml_path) {
-        this.xml_path = xml_path;
+    public void setXmlPath(String xmlPath) {
+        this.xmlPath = xmlPath;
     }
 
+    @SneakyThrows
     public void parse(Document document) throws XmlParserException, FileResolveException {
         Element root_element = document.getRootElement();
         if (!root_element.getName().equals(Tags.ROOT_TAG))
@@ -41,14 +46,8 @@ public class XmlParser {
         {
             if (element.getName().equals(Tags.DATASOURCE))
             {
-                try {
-                    parseDataSource(element);
-                    continue;
-                } catch (XmlParserException e) {
-                    System.out.println(e.getMessage());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                parseDataSource(element);
+                continue;
             }
 
             if (element.getName().equals(Tags.CLASS_CREATOR))
@@ -62,12 +61,14 @@ public class XmlParser {
 
     }
 
+    @SneakyThrows
     public void parseDataSource(Element datasourceElement) throws XmlParserException, IOException, FileResolveException {
         String name = datasourceElement.attributeValue(Tags.ID);
         List<Element> datasourceChildElements = datasourceElement.elements();
 
-        String driver = null,url = null,user = null,password = null;
+        String driver = null,url = null,username = null,password = null;
         Properties properties = null;
+        // TODO: 2021/11/15 待优化
         for (Element propertyElement  : datasourceChildElements)
         {
             if (!propertyElement.getName().equals(Tags.PROPERTY))
@@ -82,7 +83,7 @@ public class XmlParser {
                     String[] defaultDataSourcePropertyNames = {"datasource.driver","datasource.url","datasource.user","datasource.password"};
                     driver = properties.getProperty(defaultDataSourcePropertyNames[0]);
                     url = properties.getProperty(defaultDataSourcePropertyNames[1]);
-                    user = properties.getProperty(defaultDataSourcePropertyNames[2]);
+                    username = properties.getProperty(defaultDataSourcePropertyNames[2]);
                     password = properties.getProperty(defaultDataSourcePropertyNames[3]);
                     continue;
                 }
@@ -97,7 +98,7 @@ public class XmlParser {
                 url = value;
 
             } else if (Tags.USER.equals(column)) {
-                user = value;
+                username = value;
 
             } else if (Tags.PASSWORD.equals(column)) {
                 password = value;
@@ -106,11 +107,14 @@ public class XmlParser {
                 throw new XmlParserException("cannot parse the column '"+column+"'");
             }
         }
-        DataSource dataSource = new DataSource(driver,url,user,password);
-        DataSourceContainer container =  DataSourceContainer.getInstance();
-        container.registry(name,dataSource);
 
-
+        MysqlDataSource ds = new MysqlDataSource();
+        ds.setURL(url);
+        ds.setUser(username);
+        ds.setPassword(password);
+        Class.forName(driver);
+        DbParser dbParser = new DefaultDbParser(ds);
+        DbParserContainer.getInstance().registry(name,dbParser);
     }
 
     public void parseClassCreator(Element element)
@@ -124,11 +128,12 @@ public class XmlParser {
         }
 
         String prefix = element.attributeValue(Tags.PREFIX);
-        String data_source_ref = element.attributeValue(Tags.DATASOURCE_REF);
+        String datasourceRef = element.attributeValue(Tags.DATASOURCE_REF);
 
-        DataSource dataSource = DataSourceContainer.getInstance().get(data_source_ref);
 
-        BeanClassCreator creator = new BeanClassCreator(dataSource,basePackage,path,prefix);
+        DbParser dbParser = DbParserContainer.getInstance().get(datasourceRef);
+
+        BeanClassCreator creator = new BeanClassCreator(dbParser,basePackage,path,prefix);
 
         List<Element> classMappingElements = element.elements("class-mapping");
         for (Element classMappingElement : classMappingElements)
@@ -153,7 +158,7 @@ public class XmlParser {
             path = path.substring(0,index);
             path += fileType;
 
-            File file = new File(xml_path);
+            File file = new File(xmlPath);
             actualPath = file.getParentFile().getAbsolutePath();
             if (file.exists())
             {
@@ -164,7 +169,7 @@ public class XmlParser {
                 throw new FileNotFoundException("No such file or directory, please check the path:" + actualPath);
         }
         else
-            return FileUtil.resolvePath(path);
+            return FileUtil.resolveResourcePath(path);
     }
 
 }
